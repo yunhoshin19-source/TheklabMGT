@@ -1,0 +1,6 @@
+const K=window.KLAB,$=id=>document.getElementById(id);
+function draw(){const m=$('month').value,items=K.data.vouchers.filter(v=>v.date.startsWith(m)&&v.type==='expense');const has=items.filter(v=>v.receipt),missing=items.filter(v=>!v.receipt);
+ $('kpis').innerHTML=[['비용전표',items.length+'건'],['증빙 첨부',has.length+'건'],['미첨부',missing.length+'건']].map(x=>'<article class="kpi"><small>'+x[0]+'</small><strong>'+x[1]+'</strong></article>').join('');
+ $('rows').replaceChildren();for(const v of items){const tr=document.createElement('tr');for(const x of [v.date,v.title,K.money(v.amount),v.receipt||'첨부 없음',v.receipt?'첨부 표시':'미첨부']){const td=document.createElement('td');td.textContent=x;tr.append(td)}const cell=document.createElement('td'),a=document.createElement('a');a.className='btn';a.href='./vouchers.html';a.textContent='전표관리';cell.append(a);tr.append(cell);$('rows').append(tr)}
+}
+$('month').value='2026-11';$('month').onchange=draw;$('csv').onclick=()=>K.downloadCsv('THEKLAB_증빙_'+$('month').value+'.csv',[['일자','전표','공급가액','증빙파일명','첨부 여부'],...K.data.vouchers.filter(v=>v.date.startsWith($('month').value)&&v.type==='expense').map(v=>[v.date,v.title,v.amount,v.receipt||'',v.receipt?'첨부':'미첨부'])]);draw();
