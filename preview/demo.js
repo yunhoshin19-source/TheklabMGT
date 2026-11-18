@@ -30,14 +30,46 @@ function remaining(s){return Math.max(0,Number(s.amount)-paid(s.id))}
 function status(s){let n=paid(s.id);return n===0?'입금 예정':n>=s.amount?'완납':'부분입금'}
 function month(d){return String(d).slice(0,7)}
 function auth(){return sessionStorage.getItem(AUTH)==='demo'}
-function nav(){const page=document.body.dataset.page||'dashboard';if(page==='login')return;
+function nav(){
+ const page=document.body.dataset.page||'dashboard';
+ if(page==='login')return;
  if(!auth()){location.replace('./index.html');return}
- const header=document.getElementById('siteNav');
- if(header){header.innerHTML='<a class="brand" href="./dashboard.html">THE KLAB <small>MGT PREVIEW</small></a><nav class="navlinks" aria-label="업무 메뉴">'+[
- ['dashboard','대시보드'],['parties','거래처'],['contracts','계약관리'],['vouchers','회계전표'],['tax','세무증빙'],['reports','보고서'],['users','사용자관리']
- ].map(([k,v])=>'<a '+(page===k?'aria-current="page" ':'')+'href="./'+k+'.html">'+v+'</a>').join('')+'</nav><div class="navtools"><span class="demo-tag">DEMO</span><button type="button" class="btn" id="demoLogout">로그아웃</button></div>';
- header.querySelector('#demoLogout').onclick=()=>{sessionStorage.removeItem(AUTH);location.replace('./index.html')};
- }
+ const sidebar=document.getElementById('siteNav');
+ if(!sidebar)return;
+ const groups=[
+  {title:'워크스페이스',items:[['dashboard','▦','대시보드']]},
+  {title:'계약 관리',items:[['parties','♙','거래처 관리'],['contracts','▤','계약 관리']]},
+  {title:'회계 · 전표',items:[['vouchers','▧','회계전표'],['tax','▱','세무증빙']]},
+  {title:'분석 · 설정',items:[['reports','▥','월별 손익'],['users','♙','사용자 관리']]}
+ ];
+ sidebar.innerHTML='<a class="brand sidebar-brand" href="./dashboard.html">THE KLAB <small>MANAGEMENT SYSTEM</small></a>'
+  +'<nav class="navlinks" aria-label="주요 메뉴">'+groups.map(group=>
+  '<section class="sidebar-group"><h2 class="sidebar-group-label">'+group.title+'</h2>'
+  +group.items.map(([key,icon,label])=>
+   '<a '+(page===key?'aria-current="page" ':'')+'href="./'+key+'.html"><span class="nav-icon" aria-hidden="true">'+icon+'</span><span>'+label+'</span></a>'
+  ).join('')+'</section>').join('')+'</nav>'
+  +'<div class="navtools"><span class="demo-tag">DEMO · UI PREVIEW</span><p class="sidebar-help">데모 데이터만 사용해주세요.<br>실제 로그인·DB 연결 없음</p><button type="button" class="btn" id="demoLogout">로그아웃</button></div>';
+ sidebar.querySelector('#demoLogout').onclick=()=>{sessionStorage.removeItem(AUTH);location.replace('./index.html')};
+ const toggle=document.createElement('button');
+ toggle.type='button';toggle.id='sidebarToggle';toggle.className='sidebar-toggle';
+ toggle.setAttribute('aria-controls','siteNav');toggle.setAttribute('aria-expanded','false');
+ toggle.setAttribute('aria-label','메뉴 열기');toggle.textContent='☰';
+ const backdrop=document.createElement('div');backdrop.className='sidebar-backdrop';backdrop.hidden=true;
+ const setOpen=open=>{
+  sidebar.classList.toggle('is-open',open);
+  toggle.setAttribute('aria-expanded',String(open));
+  toggle.setAttribute('aria-label',open?'메뉴 닫기':'메뉴 열기');
+  backdrop.hidden=!open;
+  document.body.classList.toggle('sidebar-open',open);
+ };
+ toggle.onclick=()=>setOpen(!sidebar.classList.contains('is-open'));
+ backdrop.onclick=()=>setOpen(false);
+ sidebar.querySelectorAll('nav a').forEach(a=>a.addEventListener('click',()=>setOpen(false)));
+ document.body.prepend(backdrop);
+ document.body.prepend(toggle);
+ document.addEventListener('keydown',e=>{if(e.key==='Escape')setOpen(false)});
+ const title=document.querySelector('.page-head h1');
+ if(title){const top=document.createElement('div');top.className='mobile-page-title';top.textContent='THE KLAB';title.parentNode.insertBefore(top,title)}
 }
 function mark(){const x=document.querySelector('[data-demo-notice]');if(x)x.textContent='공개 UI 데모 · 실제 인증/DB 저장 없음 · 입력 데이터는 현재 브라우저에만 저장'}
 function showMessage(msg,good=true){const el=document.getElementById('message');if(el){el.textContent=msg;el.className=good?'message good':'message bad'}else alert(msg)}
