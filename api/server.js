@@ -1,5 +1,6 @@
 import http from 'node:http';
 import pg from 'pg';
+import { handleContractRoutes } from './contracts.js';
 import { createToken, hashPassword, verifyPassword, normalizeEmail, validatePassword, tokenHash, sessionCookie, clearedCookie, parseCookie } from './auth.js';
 const {Pool}=pg;
 const port=Number(process.env.API_PORT||3000);
@@ -50,6 +51,7 @@ const server=http.createServer(async(req,res)=>{
   return json(res,200,{ok:true},{'Set-Cookie':clearedCookie(secureCookie)});
  }
  if(!user)return json(res,401,{error:'Authentication required'});
+ if(await handleContractRoutes({req,res,url,user,pool,readBody}))return;
  if(path==='/api/users'&&req.method==='GET'){
   if(user.role!=='admin')return json(res,403,{error:'Forbidden'});
   const result=await pool.query('SELECT id,email,display_name,role,is_active,created_at,last_login_at FROM app_users ORDER BY created_at DESC');
@@ -77,6 +79,6 @@ const server=http.createServer(async(req,res)=>{
   return json(res,200,{user:safeUser(result.rows[0])});
  }
  return json(res,404,{error:'Not found'});
- }catch(e){console.error('API error:',e.message);return json(res,e.message==='too_large'?413:e.message==='bad_json'?400:500,{error:'Request could not be processed'})}
+ }catch(e){console.error('API error:',e.message);return json(res,e.message==='too_large'?413:e.message==='bad_json'?400:e.httpStatus||500,{error:e.httpStatus?e.message:'Request could not be processed'})}
 });
 server.listen(port,'127.0.0.1',()=>console.log('THE KLAB API listening on 127.0.0.1:'+port));
