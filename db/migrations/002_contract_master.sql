@@ -33,6 +33,9 @@ CREATE TABLE IF NOT EXISTS counterparty_contacts (
 CREATE UNIQUE INDEX IF NOT EXISTS ux_counterparty_primary_contact
  ON counterparty_contacts(counterparty_id) WHERE is_primary;
 ALTER TABLE contracts ADD COLUMN IF NOT EXISTS counterparty_id uuid REFERENCES counterparties(id);
+-- Legacy organization link becomes optional for new counterparty-based contracts.
+ALTER TABLE contracts ALTER COLUMN organization_id DROP NOT NULL;
+ALTER TABLE contracts ADD CONSTRAINT ck_contract_party_reference_002 CHECK (organization_id IS NOT NULL OR counterparty_id IS NOT NULL);
 ALTER TABLE contracts ADD COLUMN IF NOT EXISTS signed_on date;
 ALTER TABLE contracts ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'draft';
 ALTER TABLE contracts ADD COLUMN IF NOT EXISTS vat_treatment text NOT NULL DEFAULT 'taxable';
