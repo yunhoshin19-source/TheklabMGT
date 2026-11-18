@@ -2,6 +2,38 @@
 
 내부 계약·회계관리 시스템. **현재 GitHub에서 개발 중이며 Docker 배포는 개발 완료 후 진행합니다.**
 
+## 페이지별 퍼블리싱 구조
+
+각 화면을 독립 HTML로 유지합니다. 공통 스타일/내비게이션만 재사용하고 업무별 JavaScript는 별도 파일입니다.
+
+```text
+index.html                 # 달력 대시보드
+login.html                 # 로그인
+users.html                 # 사용자 관리
+contracts.html             # 계약/거래처 관리
+assets/
+  css/
+    common.css             # 디자인 토큰, 공통 반응형·모바일 내비게이션
+    pages/
+      index.css
+      login.css
+      users.css
+      contracts.css
+  js/
+    common.js              # 공통 메뉴, 페이지 이동, 접근성
+    pages/
+      index.js
+      login.js
+      users.js
+      contracts.js
+```
+
+- 각 화면의 UI 수정은 해당 `assets/css/pages/*.css` 및 `assets/js/pages/*.js`에 적용합니다.
+- 공통 버튼/색상/모바일 메뉴 규칙만 `assets/css/common.css`에 적용합니다.
+- 모바일에서는 공통 하단 메뉴를 사용하고 대시보드 달력은 가로 스크롤됩니다.
+- 서버 인증/DB API가 없는 정적 호스팅에서는 로그인 후 화면을 사용할 수 없습니다.
+- 코드 참조 경로를 GitHub에서 확인했지만, 실제 브라우저 반응형/로그인 동작 통합 테스트는 별도로 필요합니다.
+
 ## 최근 구현
 - 사용자 로그인/관리: `login.html`, `users.html`, `api/server.js`
 - 계약·거래처 마스터: `contracts.html`, `api/contracts.js`
