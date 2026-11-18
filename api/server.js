@@ -1,4 +1,7 @@
 import http from 'node:http';
+import { readFile } from 'node:fs/promises';
+import { resolve, extname, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { handleContractRoutes } from './contracts.js';
 import { createToken, hashPassword, verifyPassword, normalizeEmail, validatePassword, tokenHash, sessionCookie, clearedCookie, parseCookie } from './auth.js';
@@ -6,6 +9,28 @@ const {Pool}=pg;
 const port=Number(process.env.API_PORT||3000);
 const secureCookie=process.env.COOKIE_SECURE!=='false';
 const pool=new Pool({connectionString:process.env.DATABASE_URL, max:10});
+const webRoot=resolve(fileURLToPath(new URL('..',import.meta.url)));
+const publicFiles=new Set(['/login.html','/index.html','/contracts.html','/users.html']);
+async function serveWeb(path,res,req){
+ const normalized=path==='/'?'/index.html':path;
+ if(!publicFiles.has(normalized)&&!normalized.startsWith('/assets/'))return false;
+ const relative=normalized.replace(/^\//,'');
+ const absolute=resolve(webRoot,relative);
+ if(!absolute.startsWith(webRoot+sep))return false;
+ if(!normalized.startsWith('/assets/')&&normalized!=='/login.html'){
+  const session=await actor(req);
+  if(!session){res.writeHead(302,{Location:'/login.html','Cache-Control':'no-store'});res.end();return true;}
+  if(normalized==='/users.html'&&session.role!=='admin'){res.writeHead(302,{Location:'/index.html'});res.end();return true;}
+ }
+ try{
+  const content=await readFile(absolute);
+  const ext=extname(absolute);
+  const type=ext==='.html'?'text/html; charset=utf-8':ext==='.css'?'text/css; charset=utf-8':ext==='.js'?'text/javascript; charset=utf-8':'application/octet-stream';
+  res.writeHead(200,{'Content-Type':type,'X-Content-Type-Options':'nosniff','Cache-Control':ext==='.html'?'no-store':'public, max-age=60'});
+  res.end(content);
+ }catch(e){if(e.code!=='ENOENT')throw e;json(res,404,{error:'File not found'});}
+ return true;
+}
 function json(res,status,payload,headers={}){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers});res.end(JSON.stringify(payload))}
 async function readBody(req){let size=0,chunks=[];for await(const c of req){size+=c.length;if(size>16384)throw new Error('too_large');chunks.push(c)}try{return JSON.parse(Buffer.concat(chunks).toString('utf8'))}catch{throw new Error('bad_json')}}
 function safeUser(u){return {id:u.id,email:u.email,name:u.display_name,role:u.role,isActive:u.is_active}}
@@ -17,7 +42,8 @@ const server=http.createServer(async(req,res)=>{
  try{
  const url=new URL(req.url,'http://localhost');
  const path=url.pathname;
- if(path==='/api/health'&&req.method==='GET')return json(res,200,{ok:true});
+ if(path==='/api/health'&&req.method==='GET'){await pool.query('SELECT 1');return json(res,200,{ok:true,database:'connected'});}
+ if(req.method==='GET'&&await serveWeb(path,res,req))return;
  if(req.method==='POST'&&!originValid(req))return json(res,403,{error:'Invalid origin'});
  if(path==='/api/login'&&req.method==='POST'){
   const body=await readBody(req),email=normalizeEmail(body.email),password=body.password;
@@ -81,4 +107,4 @@ const server=http.createServer(async(req,res)=>{
  return json(res,404,{error:'Not found'});
  }catch(e){console.error('API error:',e.message);return json(res,e.message==='too_large'?413:e.message==='bad_json'?400:e.httpStatus||500,{error:e.httpStatus?e.message:'Request could not be processed'})}
 });
-server.listen(port,'127.0.0.1',()=>console.log('THE KLAB API listening on 127.0.0.1:'+port));
+server.listen(port,process.env.API_HOST||'127.0.0.1',()=>console.log('THE KLAB web+API listening on '+(process.env.API_HOST||'127.0.0.1')+':'+port));
