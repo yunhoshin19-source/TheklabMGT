@@ -34,6 +34,45 @@ assets/
 - 서버 인증/DB API가 없는 정적 호스팅에서는 로그인 후 화면을 사용할 수 없습니다.
 - 코드 참조 경로를 GitHub에서 확인했지만, 실제 브라우저 반응형/로그인 동작 통합 테스트는 별도로 필요합니다.
 
+## 로그인 및 PostgreSQL 통합 테스트 (2026-11-18)
+
+GitHub Actions `API + PostgreSQL Integration`이 PostgreSQL 16 컨테이너를 만들고, 스키마를 적용하고, 실제 웹서버/API를 실행해 아래 시나리오를 확인합니다:
+
+- DB 연결 확인 (`GET /api/health`)
+- 비로그인 계약 페이지 접근 차단
+- 관리자 계정 비밀번호 검증 및 DB 세션 쿠키 발급
+- 사용자 생성/조회
+- 거래처 생성과 유지보수 총계약금액·월금액 별도 저장
+- 프로젝트 부분입금/완납, 초과입금 금지
+- 계약 수정 이력과 동시 변경 버전 충돌
+- 로그아웃 세션 무효화
+
+실행 결과: https://github.com/yunhoshin19-source/TheklabMGT/actions/runs/44244590641
+
+### Docker 없이 개발용 서버 실행
+
+개발용 PostgreSQL 16 DB를 준비하고 다음 SQL을 순서대로 실행:
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/init/001_schema.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/002_contract_master.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/003_contract_financial_tracking.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f api/schema.sql
+```
+
+```bash
+cd api
+npm install
+# DATABASE_URL, ADMIN_EMAIL, ADMIN_PASSWORD 값을 안전한 환경변수로 설정
+npm run create-admin
+# 로컬 HTTP 개발용으로만 COOKIE_SECURE=false
+npm start
+```
+
+이제 `http://127.0.0.1:3000/login.html`에서 로그인하고 계약관리와 사용자관리 페이지로 이동할 수 있습니다. 실제 업무 데이터를 사용하지 말고 테스트 계정/샘플 거래처만 사용하세요. 운영 환경은 TLS(HTTPS), 보안 쿠키, 계정 권한, DB 백업, 비밀정보 저장소를 별도로 구성해야 합니다.
+
+**중요:** GitHub Pages는 공개 UI 프리뷰 전용입니다. 로그인/DB 연동은 Pages에서 제공되지 않습니다. 상시 서버와 운영 DB 배포는 아직 진행하지 않았으며 Docker 도입도 개발 완료 후로 유지합니다.
+
 ## 최근 구현
 - 사용자 로그인/관리: `login.html`, `users.html`, `api/server.js`
 - 계약·거래처 마스터: `contracts.html`, `api/contracts.js`
@@ -52,7 +91,7 @@ assets/
 
 ## 개발 상태 및 제한
 - 계약 UI는 인증 API와 PostgreSQL 연동을 전제로 구현했으며, 배포된 실행 환경에서 아직 통합 검증하지 않았습니다.
-- 로그인 API와 계약 API는 서버 실행 및 Same-Origin reverse proxy가 있어야 동작합니다.
+- 개발용 Node 서버가 HTML과 API를 같은 로컬 주소에서 제공합니다. 운영용 외부 공개 시 HTTPS 리버스 프록시와 별도 접근통제가 필요합니다.
 - 계약서/영수증 **실제 파일 업로드 및 저장은 미구현**입니다. 파일을 GitHub에 업로드하지 마세요.
 - 프로젝트 입금 예정금액과 실제 입금액은 구분됩니다. 실제 입금전표만 수납 누계에 반영합니다.
 - 금융 데이터와 개인정보를 개발/데모 환경에 입력하지 마세요.
