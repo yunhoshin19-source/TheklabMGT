@@ -10,17 +10,17 @@ const port=Number(process.env.API_PORT||3000);
 const secureCookie=process.env.COOKIE_SECURE!=='false';
 const pool=new Pool({connectionString:process.env.DATABASE_URL, max:10});
 const webRoot=resolve(fileURLToPath(new URL('..',import.meta.url)));
-const publicFiles=new Set(['/login.html','/index.html','/contracts.html','/users.html']);
+const publicFiles=new Set(['/login.html','/index.html','/dashboard.html','/contracts.html','/users.html']);
 async function serveWeb(path,res,req){
  const normalized=path==='/'?'/index.html':path;
  if(!publicFiles.has(normalized)&&!normalized.startsWith('/assets/'))return false;
  const relative=normalized.replace(/^\//,'');
  const absolute=resolve(webRoot,relative);
  if(!absolute.startsWith(webRoot+sep))return false;
- if(!normalized.startsWith('/assets/')&&normalized!=='/login.html'){
+ if(!normalized.startsWith('/assets/')&&normalized!=='/login.html'&&normalized!=='/index.html'){
   const session=await actor(req);
   if(!session){res.writeHead(302,{Location:'/login.html','Cache-Control':'no-store'});res.end();return true;}
-  if(normalized==='/users.html'&&session.role!=='admin'){res.writeHead(302,{Location:'/index.html'});res.end();return true;}
+  if(normalized==='/users.html'&&session.role!=='admin'){res.writeHead(302,{Location:'/dashboard.html'});res.end();return true;}
  }
  try{
   const content=await readFile(absolute);
