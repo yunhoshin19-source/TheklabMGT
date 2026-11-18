@@ -8,8 +8,8 @@ for(const page of pages){
  assert.match(html,/<html lang="ko">/);
  assert.match(html,/\.\/demo\.css/);
  assert.match(html,/\.\/demo\.js/);
- assert.match(html,new RegExp('\\.\\/pages/'+page+'\\.js'));
- assert.ok(existsSync(new URL('./pages/'+page+'.js',here)),page+' missing script');
+ assert.match(html,new RegExp('\\.\\/pages/'+(page==='index'?'login':page)+'\\.js'));
+ assert.ok(existsSync(new URL('./pages/'+(page==='index'?'login':page)+'.js',here)),page+' missing script');
  if(page==='index'){assert.match(html,/데모 로그인/);assert.doesNotMatch(html,/\/api\/login/)}
  console.log('PASS preview page:',page);
 }
