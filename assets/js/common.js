@@ -11,6 +11,14 @@ const routes=[{key:'dashboard',href:'/index.html',label:'대시보드',icon:'▦
 const nav=document.createElement('nav');nav.className='tl-mobile-nav';nav.setAttribute('aria-label','모바일 주요 메뉴');
 for(const item of routes){const a=document.createElement('a');a.href=item.href;if(item.key===page)a.setAttribute('aria-current','page');const icon=document.createElement('span');icon.className='tl-icon';icon.setAttribute('aria-hidden','true');icon.textContent=item.icon;const label=document.createElement('span');label.textContent=item.label;a.append(icon,label);nav.append(a)}
 document.body.append(nav);
+if(page==='contracts'||page==='users'){
+ const links=document.createElement('nav');links.className='tl-page-links';links.setAttribute('aria-label','페이지 이동');
+ for(const item of routes.filter(i=>i.key!=='reports')){
+  const a=document.createElement('a');a.href=item.href;a.textContent=item.label;if(item.key===page)a.setAttribute('aria-current','page');links.append(a)
+ }
+ const target=page==='contracts'?document.querySelector('.header .toolbar'):document.querySelector('.top > div:last-child');
+ if(target)target.prepend(links);
+}
 // Only admins should see user administration. Authenticated backend still enforces privileges.
 const userLinks=Array.from(document.querySelectorAll('a[href="/users.html"]'));
 fetch('/api/me',{credentials:'same-origin',cache:'no-store'}).then(r=>r.ok?r.json():null).then(d=>{if(!d||d.user?.role!=='admin'){userLinks.forEach(a=>a.remove())}}).catch(()=>userLinks.forEach(a=>a.remove()));
