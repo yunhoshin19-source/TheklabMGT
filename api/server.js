@@ -32,12 +32,14 @@ const server=http.createServer(async(req,res)=>{
    return deny();
   }
   const token=createToken();
-  await pool.query('BEGIN').catch(()=>{});
+  const client=await pool.connect();
   try{
-   await pool.query('UPDATE app_users SET failed_attempts=0,locked_until=NULL,last_login_at=now() WHERE id=$1',[user.id]);
-   await pool.query('INSERT INTO app_sessions(user_id,token_hash,expires_at) VALUES($1,$2,now()+interval \'8 hours\')',[user.id,tokenHash(token)]);
-   await pool.query('INSERT INTO auth_audit(user_id,action) VALUES($1,$2)',[user.id,'LOGIN']);
-  }finally{await pool.query('COMMIT').catch(()=>{})}
+   await client.query('BEGIN');
+   await client.query('UPDATE app_users SET failed_attempts=0,locked_until=NULL,last_login_at=now() WHERE id=$1',[user.id]);
+   await client.query("INSERT INTO app_sessions(user_id,token_hash,expires_at) VALUES($1,$2,now()+interval '8 hours')",[user.id,tokenHash(token)]);
+   await client.query('INSERT INTO auth_audit(user_id,action) VALUES($1,$2)',[user.id,'LOGIN']);
+   await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
   return json(res,200,{user:safeUser(user)},{'Set-Cookie':sessionCookie(token,secureCookie)});
  }
  const user=await actor(req);
