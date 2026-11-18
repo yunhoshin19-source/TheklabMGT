@@ -20,14 +20,14 @@ try{
  server=spawn(process.execPath,['server.js'],{cwd:new URL('..',import.meta.url),env:{...process.env,COOKIE_SECURE:'false',API_PORT:'3000',API_HOST:'127.0.0.1'},stdio:['ignore','pipe','pipe']});
  server.stdout.on('data',d=>process.stdout.write(d));server.stderr.on('data',d=>process.stderr.write(d));
  await ready();console.log('PASS: DB health / API reachable');
- let r=await request('/contracts.html');assert.equal(r.status,302);console.log('PASS: protected contract page redirect');
+ let r=await request('/dashboard.html');assert.equal(r.status,302);console.log('PASS: protected contract page redirect');
  r=await request('/api/me');assert.equal(r.status,401);
  const pw='TestStrongPassword_2026#';
  await pool.query('INSERT INTO app_users(email,display_name,password_hash,role) VALUES($1,$2,$3,$4)',['admin@test.invalid','Test Admin',await hashPassword(pw),'admin']);
  r=await send('/api/login',{email:'admin@test.invalid',password:'wrong-password'});assert.equal(r.status,401);
  r=await send('/api/login',{email:'admin@test.invalid',password:pw});assert.equal(r.status,200);assert.ok(r.cookie?.includes('HttpOnly'));cookie=r.cookie.split(';')[0];console.log('PASS: password verification and secure session cookie');
  r=await request('/api/me');assert.equal(r.status,200);assert.equal(r.body.user.role,'admin');
- r=await request('/contracts.html');assert.equal(r.status,200);assert.ok(r.body.includes('계약관리'));console.log('PASS: authenticated HTML and /api/me');
+ r=await request('/dashboard.html');assert.equal(r.status,200);assert.ok(r.body.includes('계약관리'));console.log('PASS: authenticated HTML and /api/me');
  r=await send('/api/users',{email:'staff@test.invalid',name:'Staff User',role:'staff',password:pw});assert.equal(r.status,201);
  r=await request('/api/users');assert.equal(r.status,200);assert.equal(r.body.users.length,2);console.log('PASS: DB user management');
  r=await send('/api/parties',{type:'business',name:'Test Client',registration:'123-45-67890'});assert.equal(r.status,201);const partyId=r.body.id;
