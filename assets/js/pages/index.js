@@ -29,7 +29,7 @@ $('prev').onclick=()=>{cursor=new Date(cursor.getFullYear(),cursor.getMonth()-1,
 (async function(){
 try{
  const r=await fetch('/api/me',{credentials:'same-origin',cache:'no-store'});
- if(!r.ok){location.replace('/login.html');return}
+ if(!r.ok){location.replace('/index.html');return}
  const d=await r.json();
  const actions=document.querySelector('.head .actions');
  if(d.user.role==='admin'){
