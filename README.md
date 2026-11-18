@@ -2,13 +2,39 @@
 
 내부 계약·회계관리 시스템. **현재 GitHub에서 개발 중이며 Docker 배포는 개발 완료 후 진행합니다.**
 
+## 공개 UI 프로토타입 (기능 시연용)
+
+**접속:** https://yunhoshin19-source.github.io/TheklabMGT/
+
+GitHub Pages는 `preview/` 폴더만 배포합니다. `preview/index.html`은 데모 로그인 진입 화면이며, 로그인 버튼은 **실제 사용자 인증이 아니라 브라우저 내 샘플 진입**입니다. 비밀번호와 실무 데이터는 입력하지 마세요.
+
+프리뷰는 독립 HTML 페이지로 나누었습니다.
+
+- `preview/index.html`: 로그인(데모 진입, 초기화)
+- `preview/dashboard.html`: 계약 시작·종료, 정기 청구, 프로젝트 입금, 전표 달력
+- `preview/parties.html`: 사업자/개인 거래처 등록·수정
+- `preview/contracts.html`: 계약 등록·수정, 총액/월 청구액 분리, 일정별 실제 입금·부분입금·변경이력
+- `preview/vouchers.html`: 청구·입금·비용·지급 전표 등록 및 수정
+- `preview/tax.html`: 비용 증빙 현황·미첨부 점검·CSV
+- `preview/reports.html`: 확정 전표 관리손익/현금흐름·CSV
+- `preview/users.html`: 샘플 사용자/권한/상태 관리
+
+공통 상태는 `preview/demo.js`가 브라우저 localStorage에 저장하며, 페이지는 `preview/pages/*.js`로 독립됩니다. 샘플 초기화는 로그인 화면에서 수행합니다. 실제 로그인 세션, 운영 PostgreSQL, 계약서 원본 및 영수증 파일 저장 기능을 제공하지 않습니다. 실제 API/DB 개발 코드는 저장소 루트의 `api/`, `db/`, `*.html`과 별도입니다.
+
+## 실제 개발용 페이지 경로
+- `index.html`은 로그인 진입 페이지
+- `dashboard.html`은 로그인 후 보호되는 대시보드
+- `contracts.html`, `users.html`은 인증 페이지
+- `api/server.js`는 GET / 요청 시 index 로그인 화면을 제공합니다.
+
 ## 페이지별 퍼블리싱 구조
 
 각 화면을 독립 HTML로 유지합니다. 공통 스타일/내비게이션만 재사용하고 업무별 JavaScript는 별도 파일입니다.
 
 ```text
-index.html                 # 달력 대시보드
-login.html                 # 로그인
+index.html                 # 로그인 첫 화면
+login.html                 # 호환 로그인 화면
+dashboard.html             # 달력 대시보드
 users.html                 # 사용자 관리
 contracts.html             # 계약/거래처 관리
 assets/
