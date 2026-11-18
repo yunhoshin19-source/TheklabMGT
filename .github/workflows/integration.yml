@@ -1,0 +1,50 @@
+name: API + PostgreSQL Integration
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'api/**'
+      - 'db/**'
+      - '.github/workflows/integration.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: theklab_test
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test_user -d theklab_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://test_user:test_password_ci_only@127.0.0.1:5432/theklab_test
+      PGPASSWORD: test_password_ci_only
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+      - name: Install API
+        working-directory: api
+        run: npm install --no-audit --no-fund
+      - name: Initialize PostgreSQL schema
+        run: |
+          psql -h 127.0.0.1 -U test_user -d theklab_test -v ON_ERROR_STOP=1 -f db/init/001_schema.sql
+          psql -h 127.0.0.1 -U test_user -d theklab_test -v ON_ERROR_STOP=1 -f db/migrations/002_contract_master.sql
+          psql -h 127.0.0.1 -U test_user -d theklab_test -v ON_ERROR_STOP=1 -f db/migrations/003_contract_financial_tracking.sql
+          psql -h 127.0.0.1 -U test_user -d theklab_test -v ON_ERROR_STOP=1 -f api/schema.sql
+      - name: Test login, sessions, DB contracts, receipts and history
+        working-directory: api
+        run: node tests/integration.mjs
