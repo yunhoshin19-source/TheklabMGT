@@ -1,0 +1,1 @@
+const K=window.KLAB;function enter(){K.login();location.href='./dashboard.html'}document.getElementById('loginForm').onsubmit=e=>{e.preventDefault();enter()};document.getElementById('enter').onclick=enter;document.getElementById('reset').onclick=()=>{if(confirm('샘플 데이터를 초기화할까요?')){K.reset();document.getElementById('message').textContent='샘플 데이터가 초기화되었습니다.'}};
