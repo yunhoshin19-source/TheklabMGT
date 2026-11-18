@@ -32,8 +32,9 @@ function validateSchedules(s){
   if(!['billing','receipt','milestone'].includes(t.type)||!iso(t.date)||!str(t.title,200)||!amount(t.amount))fail(400,'일정 날짜·구분·금액을 확인하세요.');
  }
 }
-const mapContract=r=>({id:r.id,partyId:r.counterparty_id,no:r.contract_no,title:r.title,type:r.type,signed:r.signed_on,start:r.starts_on,end:r.ends_on,status:r.status,contractAmount:Number(r.total_amount),monthlyAmount:r.monthly_amount===null?null:Number(r.monthly_amount),billingDay:r.billing_day,vatTreatment:r.vat_treatment,memo:r.notes||'',autoRenew:r.auto_renew,noticeDays:r.renewal_notice_days,revision:r.revision});
-const mapSchedule=r=>({id:r.id,contractId:r.contract_id,type:r.schedule_type,title:r.title,date:r.scheduled_on,amount:Number(r.amount),paid:Number(r.paid_amount||0),remaining:Number(r.amount)-Number(r.paid_amount||0),status:Number(r.paid_amount||0)>=Number(r.amount)&&Number(r.amount)>0?'paid':Number(r.paid_amount||0)>0?'partial':r.status});
+const dateOut=v=>v instanceof Date?v.toISOString().slice(0,10):v;
+const mapContract=r=>({id:r.id,partyId:r.counterparty_id,no:r.contract_no,title:r.title,type:r.type,signed:dateOut(r.signed_on),start:dateOut(r.starts_on),end:dateOut(r.ends_on),status:r.status,contractAmount:Number(r.total_amount),monthlyAmount:r.monthly_amount===null?null:Number(r.monthly_amount),billingDay:r.billing_day,vatTreatment:r.vat_treatment,memo:r.notes||'',autoRenew:r.auto_renew,noticeDays:r.renewal_notice_days,revision:r.revision});
+const mapSchedule=r=>({id:r.id,contractId:r.contract_id,type:r.schedule_type,title:r.title,date:dateOut(r.scheduled_on),amount:Number(r.amount),paid:Number(r.paid_amount||0),remaining:Number(r.amount)-Number(r.paid_amount||0),status:Number(r.paid_amount||0)>=Number(r.amount)&&Number(r.amount)>0?'paid':Number(r.paid_amount||0)>0?'partial':r.status});
 const contractSql='SELECT id,counterparty_id,contract_no,title,type,signed_on,starts_on,ends_on,status,total_amount,monthly_amount,billing_day,vat_treatment,notes,auto_renew,renewal_notice_days,revision FROM contracts';
 const scheduleSql=`SELECT s.id,s.contract_id,s.schedule_type,s.title,s.scheduled_on,s.amount,s.status,COALESCE(SUM(a.amount),0) AS paid_amount
  FROM contract_schedules s LEFT JOIN schedule_receipt_allocations a ON a.schedule_id=s.id`;
@@ -56,7 +57,7 @@ async function saveSchedules(c,contractId,submitted){
   if(t.id){
    const old=known.get(t.id);if(!old)fail(400,'다른 계약의 일정을 변경할 수 없습니다.');
    if(Number(old.paid)>t.amount)fail(409,'입금 누적액보다 적게 일정을 변경할 수 없습니다.');
-   if(Number(old.paid)>0&&(old.schedule_type!==t.type||old.scheduled_on.toISOString().slice(0,10)!==t.date))
+   if(Number(old.paid)>0&&(old.schedule_type!==t.type||dateOut(old.scheduled_on)!==t.date))
     fail(409,'입금이 연결된 일정의 날짜/유형은 변경할 수 없습니다.');
    await c.query('UPDATE contract_schedules SET schedule_type=$1,title=$2,scheduled_on=$3,amount=$4,updated_at=now() WHERE id=$5',[t.type,t.title,t.date,t.amount,t.id]);
   }else await c.query('INSERT INTO contract_schedules(contract_id,schedule_type,title,scheduled_on,amount) VALUES($1,$2,$3,$4,$5)',[contractId,t.type,t.title,t.date,t.amount]);
